@@ -7,6 +7,10 @@ Welcome to the Honeyside experience! You can access the full [Acacia documentati
 
 Please be aware that open source support is low priority. Paid products come first! Nonetheless, the Honeyside community will always be there to answer your questions and challenge your proposals.
 
+### Support Us
+Support us by buying one of our [paid products](https://www.honeyside.it/), too!
+* [Clover](https://codecanyon.net/item/clover-realtime-messaging-audio-video-conferencing-web-app-nodejs-react-webrtc-socketio/25737452) is an instant messaging & conferencing web app with audio / video capabilities, both in one-to-one calls and in group calls with multiple remote peers! - [Available on CodeCanyon](https://codecanyon.net/item/clover-realtime-messaging-audio-video-conferencing-web-app-nodejs-react-webrtc-socketio/25737452)
+
 ## Features
 Acacia offers the following features:
 * Listens on any port of choice, either with or without SSL. By default, 80 and 443.
