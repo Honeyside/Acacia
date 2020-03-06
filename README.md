@@ -3,7 +3,7 @@
 Acacia is the Node.js proxy server. Entirely written in Node.js, it supports reverse proxy, static file serving, PHP server via PHP-FPM (FastCGI), DNS proxy, load balancing, Let’s Encrypt automatic free SSL certificates, pathname rewriting, changing origin, custom headers, path mounting and much much more! Also, it supports WebSockets and can run WordPress.
 
 ## Honeyside Support
-Welcome to the Honeyside experience! You can access the full [Acacia documentation online](https://acacia.honeyside.it)) and the [Honeyside Support Forum](https://forum.honeyside.it) is here for you. Also take a look at our landing page, because… well, it’s nice ❤
+Welcome to the Honeyside experience! You can access the full [Acacia documentation online](https://acacia.honeyside.it) and the [Honeyside Support Forum](https://forum.honeyside.it) is here for you. Also take a look at our landing page, because… well, it’s nice ❤
 
 Please be aware that open source support is low priority. Paid products come first! Nonetheless, the Honeyside community will always be there to answer your questions and challenge your proposals.
 
