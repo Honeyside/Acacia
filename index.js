@@ -4,8 +4,7 @@
  * Acacia Proxy Server
  * Version 1.2.0
  * July 29th, 2019
- *
- * Unauthorized distribution of this software is not allowed. You must own a license.
+ * License: MIT
  *
  */
 
