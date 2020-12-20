@@ -320,6 +320,8 @@ const main = app => {
                     cert: config.certs[domain].cert && fs.existsSync(getPath(`greenlock.d/live/${domain}/cert.pem`)) ? fs.readFileSync(config.certs[domain].cert, 'utf8') : undefined,
                     ca: config.certs[domain].ca && fs.existsSync(getPath(`greenlock.d/live/${domain}/chain.pem`)) ? fs.readFileSync(config.certs[domain].ca, 'utf8') : undefined
                 });
+
+                console.log(secureContext[domain])
             };
             if (!fs.existsSync(getPath(`greenlock.d/live/${domain}/privkey.pem`))) {
                 setTimeout(() => go(domain), 5000);
