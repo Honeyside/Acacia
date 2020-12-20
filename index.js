@@ -289,6 +289,10 @@ if (cluster.isMaster) {
         }
 
         /* END Dns Proxy */
+
+        _server.close();
+
+        Power.load(main, options.powerOptions);
     });
 }
 
@@ -678,5 +682,3 @@ const main = app => {
         /* END PHP Server */
     });
 };
-
-Power.load(main, options.powerOptions);
