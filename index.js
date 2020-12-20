@@ -91,6 +91,8 @@ if (cluster.isMaster) {
         manager: '@greenlock/manager',
     });
 
+    log('Greenlock create ok'.green);
+
     greenlock.manager.defaults({
         agreeToTerms: true,
         subscriberEmail: 'subscriber@example.com',
