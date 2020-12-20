@@ -41,12 +41,6 @@ options.phpOptions = {
 
 const globalOptions = options;
 
-// Let's Encrypt Storage
-let leStore = require('greenlock-store-fs').create({
-    configDir: `${__dirname}/acme/certs`,
-    debug: false
-});
-
 // Master process
 if (cluster.isMaster) {
 
@@ -162,7 +156,6 @@ if (cluster.isMaster) {
                                     webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
                                 },
                             },
-                            store: leStore,
                             debug: true,
                         });
                         log(`Added ${domain} to automatic Let's Encrypt certificate management system`.green);
