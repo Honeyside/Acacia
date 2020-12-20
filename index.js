@@ -85,7 +85,6 @@ if (cluster.isMaster) {
                 console.error(details);
             }
         },
-        debug: true,
         packageRoot: `${__dirname}`,
         configDir: `${__dirname}/greenlock.d`,
         manager: {
@@ -166,7 +165,6 @@ if (cluster.isMaster) {
                             altnames: [domain],
                             subscriberEmail: config.certs[domain].email,
                             agreeToTerms: true,
-                            debug: true,
                         });
                         log(`Added ${domain} to automatic Let's Encrypt certificate management system`.green);
                         pending--;
