@@ -92,7 +92,6 @@ if (cluster.isMaster) {
             }
         },
         debug: true,
-        configDir: `${__dirname}/acme/certs`,
         packageRoot: __dirname,
     });
 
