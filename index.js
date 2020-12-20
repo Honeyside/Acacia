@@ -41,6 +41,12 @@ options.phpOptions = {
 
 const globalOptions = options;
 
+// Let's Encrypt Storage
+let leStore = require('greenlock-store-fs').create({
+    configDir: `${__dirname}/acme/certs`,
+    debug: false
+});
+
 // Master process
 if (cluster.isMaster) {
 
@@ -93,7 +99,8 @@ if (cluster.isMaster) {
 
     greenlock.manager.defaults({
         agreeToTerms: true,
-        subscriberEmail: 'subscriber@example.com'
+        subscriberEmail: 'subscriber@example.com',
+        store: leStore,
     }).then(() => {
         let keys = Object.keys(config.certs);
 
