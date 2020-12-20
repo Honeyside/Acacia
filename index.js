@@ -96,6 +96,11 @@ if (cluster.isMaster) {
         store: leStore,
     });
 
+    await greenlock.manager.defaults({
+        agreeToTerms: true,
+        subscriberEmail: 'subscriber@example.com'
+    });
+
     let keys = Object.keys(config.certs);
 
     let pending = 0;
