@@ -92,6 +92,8 @@ if (cluster.isMaster) {
             }
         },
         debug: true,
+        configDir: `${__dirname}/acme/certs`,
+        store: leStore,
     });
 
     let keys = Object.keys(config.certs);
