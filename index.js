@@ -316,9 +316,9 @@ const main = app => {
         Object.keys(config.certs).forEach(domain => {
             const go = (domain) => {
                 secureContext[domain] = tls.createSecureContext({
-                    key: config.certs[domain].key && fs.existsSync(getPath(`greenlock.d/live/${domain}/privkey.pem`)) ? fs.readFileSync(getPath(config.certs[domain].key), 'utf8') : undefined,
-                    cert: config.certs[domain].cert && fs.existsSync(getPath(`greenlock.d/live/${domain}/cert.pem`)) ? fs.readFileSync(config.certs[domain].cert, 'utf8') : undefined,
-                    ca: config.certs[domain].ca && fs.existsSync(getPath(`greenlock.d/live/${domain}/chain.pem`)) ? fs.readFileSync(config.certs[domain].ca, 'utf8') : undefined
+                    key: fs.existsSync(getPath(`greenlock.d/live/${domain}/privkey.pem`)) ? fs.readFileSync(getPath(`greenlock.d/live/${domain}/privkey.pem`), 'utf8') : undefined,
+                    cert: fs.existsSync(getPath(`greenlock.d/live/${domain}/cert.pem`)) ? fs.readFileSync(getPath(`greenlock.d/live/${domain}/cert.pem`), 'utf8') : undefined,
+                    ca: fs.existsSync(getPath(`greenlock.d/live/${domain}/chain.pem`)) ? fs.readFileSync(getPath(`greenlock.d/live/${domain}/chain.pem`), 'utf8') : undefined
                 });
 
                 console.log(secureContext[domain])
