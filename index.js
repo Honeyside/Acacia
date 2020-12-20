@@ -105,6 +105,8 @@ if (cluster.isMaster) {
             },
         },
     }).then(() => {
+        log('Greenlock manager ok'.green);
+
         let keys = Object.keys(config.certs);
 
         let pending = 0;
