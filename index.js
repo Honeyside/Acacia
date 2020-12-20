@@ -47,19 +47,6 @@ let leStore = require('greenlock-store-fs').create({
     debug: false
 });
 
-
-// Let's Encrypt ACME Challenge Handler
-let leHttpChallenge = require('le-challenge-fs').create({
-    webrootPath: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
-    debug: false
-});
-
-// Let's Encrypt TOS Agree
-const leAgree = (opts, agreeCb) => {
-    // opts = { email, domains, tosUrl }
-    agreeCb(null, opts.tosUrl);
-};
-
 // Master process
 if (cluster.isMaster) {
 
@@ -95,20 +82,16 @@ if (cluster.isMaster) {
     /* BEGIN Let's Encrypt generator */
 
     greenlock = Greenlock.create({
-        version: 'draft-12',
-        // staging API
-        // server: 'https://acme-staging-v02.api.letsencrypt.org/directory',
-        // production API
-        server: 'https://acme-v02.api.letsencrypt.org/directory',
-        store: leStore,
-        challenges: {
-            'http-01': leHttpChallenge
+        packageAgent: 'Acacia/2.0.0',
+        maintainerEmail: 'acacia@honeyside.it',
+        staging: true,
+        notify: (event, details) => {
+            if ('error' === event) {
+                // `details` is an error object in this case
+                console.error(details);
+            }
         },
-        challengeType: 'http-01',
-        agreeToTerms: leAgree,
-        renewWithin: 14 * 24 * 60 * 60 * 1000,
-        renewBy: 10 * 24 * 60 * 60 * 1000,
-        debug: false
+        debug: true,
     });
 
     let keys = Object.keys(config.certs);
@@ -161,31 +144,22 @@ if (cluster.isMaster) {
                     log(`Generating Let's Encrypt certificate for ${domain}...`.yellow);
 
                     pending++;
-                    await greenlock.check({domains: [domain]}).then(async results => {
-                        if (results) {
-                            // we already have certificates
-                            log(`Using existing Let's Encrypt certificate for ${domain}`.green);
-                            pending--;
-                            finaliseLetsEncrypt(domain);
-                            return;
-                        }
-                        // Register Certificate manually
-                        await greenlock.register({
-                            domains: [domain],
-                            email: config.certs[domain].email,
-                            agreeTos: true,
-                            rsaKeySize: 2048,
-                            challengeType: 'http-01'
-                        }).then(results => {
-                            log(`Successfully generated Let's Encrypt certificate for ${domain}`.green);
-                            pending--;
-                            finaliseLetsEncrypt(domain);
-                        }, error => {
-                            console.log(error);
-                            log(`ACME challenge error for ${domain}`.red);
-                            pending--;
-                        });
-                    }).catch(() => pending--);
+                    await greenlock.add({
+                        subject: domain,
+                        subscriberEmail: config.certs[domain].email,
+                        agreeToTerms: true,
+                        challenges: {
+                            "http-01": {
+                                module: "acme-http-01-webroot",
+                                webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
+                            },
+                        },
+                        store: leStore,
+                        debug: true,
+                    });
+                    log(`Added ${domain} to automatic Let's Encrypt certificate management system`.green);
+                    pending--;
+                    finaliseLetsEncrypt(domain);
                     break;
                 default:
                     log(`Warning: cert type not set for ${domain}`.yellow);
