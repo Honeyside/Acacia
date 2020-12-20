@@ -88,7 +88,9 @@ if (cluster.isMaster) {
         debug: true,
         packageRoot: `${__dirname}`,
         configDir: `${__dirname}/greenlock.d`,
-        manager: '@greenlock/manager',
+        manager: {
+            module: '@greenlock/manager'
+        },
     });
 
     log('Greenlock create ok'.green);
