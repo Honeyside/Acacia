@@ -156,7 +156,7 @@ if (cluster.isMaster) {
                             agreeToTerms: true,
                             challenges: {
                                 "http-01": {
-                                    module: "acme-http-01-webroot",
+                                    module: "le-challenge-fs",
                                     webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
                                 },
                             },
