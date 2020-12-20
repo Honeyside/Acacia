@@ -96,7 +96,7 @@ if (cluster.isMaster) {
         store: leStore,
     });
 
-    await greenlock.manager.defaults({
+    greenlock.manager.defaults({
         agreeToTerms: true,
         subscriberEmail: 'subscriber@example.com'
     });
