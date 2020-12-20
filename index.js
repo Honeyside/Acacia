@@ -92,7 +92,9 @@ if (cluster.isMaster) {
             }
         },
         debug: true,
-        packageRoot: __dirname,
+        packageRoot: `${__dirname}/acme/certs`,
+        configDir: `${__dirname}/acme/certs/greenlock.d`,
+        manager: '@greenlock/manager',
     });
 
     greenlock.manager.defaults({

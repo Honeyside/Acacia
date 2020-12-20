@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@greenlock/manager": "^3.1.0",
     "express": "^4.17.1",
     "greenlock": "^4.0.4",
     "greenlock-store-fs": "^3.2.2",
