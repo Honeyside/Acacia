@@ -98,232 +98,231 @@ if (cluster.isMaster) {
     greenlock.manager.defaults({
         agreeToTerms: true,
         subscriberEmail: 'subscriber@example.com'
-    });
+    }).then(() => {
+        let keys = Object.keys(config.certs);
 
-    let keys = Object.keys(config.certs);
+        let pending = 0;
 
-    let pending = 0;
-
-    const finaliseLetsEncrypt = domain => {
-        config.certs[domain] = {
-            ...config.certs[domain],
-            key: `acme/certs/live/${domain}/privkey.pem`,
-            cert: `acme/certs/live/${domain}/cert.pem`,
-            ca: `acme/certs/live/${domain}/chain.pem`
+        const finaliseLetsEncrypt = domain => {
+            config.certs[domain] = {
+                ...config.certs[domain],
+                key: `acme/certs/live/${domain}/privkey.pem`,
+                cert: `acme/certs/live/${domain}/cert.pem`,
+                ca: `acme/certs/live/${domain}/chain.pem`
+            };
         };
-    };
 
-    const app = new Koa();
+        const app = new Koa();
 
-    // or use absolute paths
-    app.use(serve(__dirname + '/acme/webroot', {hidden: true}));
+        // or use absolute paths
+        app.use(serve(__dirname + '/acme/webroot', {hidden: true}));
 
-    const _server = app.listen(80, async () => {
-        // keys.forEach(domain => {
-        for (let i = 0; i < keys.length; i++) {
-            let domain = keys[i];
-            switch (config.certs[domain].type) {
-                case 'path':
-                    break;
-                case 'letsencrypt':
+        const _server = app.listen(80, async () => {
+            // keys.forEach(domain => {
+            for (let i = 0; i < keys.length; i++) {
+                let domain = keys[i];
+                switch (config.certs[domain].type) {
+                    case 'path':
+                        break;
+                    case 'letsencrypt':
 
-                    if (validator.isIP(domain)) {
-                        log(`Let's Encrypt does not support IP certificate generation, only domains. SSL certificate error on ${domain}.`.red);
-                        return;
-                    }
+                        if (validator.isIP(domain)) {
+                            log(`Let's Encrypt does not support IP certificate generation, only domains. SSL certificate error on ${domain}.`.red);
+                            return;
+                        }
 
-                    if (!validator.isFQDN(domain)) {
-                        log(`Let's Encrypt can generate certificates only on valid domains. SSL certificate error on ${domain}.`.red);
-                        return;
-                    }
+                        if (!validator.isFQDN(domain)) {
+                            log(`Let's Encrypt can generate certificates only on valid domains. SSL certificate error on ${domain}.`.red);
+                            return;
+                        }
 
-                    if (!config.certs[domain].email) {
-                        log(`In order to generate a Let's Encrypt certificate, you must specify an email. SSL certificate error on ${domain}.`.red);
-                        return;
-                    }
+                        if (!config.certs[domain].email) {
+                            log(`In order to generate a Let's Encrypt certificate, you must specify an email. SSL certificate error on ${domain}.`.red);
+                            return;
+                        }
 
-                    if (!validator.isEmail(config.certs[domain].email)) {
-                        log(`The email specified is invalid. SSL certificate error on ${domain}.`.red);
-                        return;
-                    }
+                        if (!validator.isEmail(config.certs[domain].email)) {
+                            log(`The email specified is invalid. SSL certificate error on ${domain}.`.red);
+                            return;
+                        }
 
-                    log(`Generating Let's Encrypt certificate for ${domain}...`.yellow);
+                        log(`Generating Let's Encrypt certificate for ${domain}...`.yellow);
 
-                    pending++;
-                    await greenlock.add({
-                        subject: domain,
-                        subscriberEmail: config.certs[domain].email,
-                        agreeToTerms: true,
-                        challenges: {
-                            "http-01": {
-                                module: "acme-http-01-webroot",
-                                webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
+                        pending++;
+                        await greenlock.add({
+                            subject: domain,
+                            subscriberEmail: config.certs[domain].email,
+                            agreeToTerms: true,
+                            challenges: {
+                                "http-01": {
+                                    module: "acme-http-01-webroot",
+                                    webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
+                                },
                             },
-                        },
-                        store: leStore,
-                        debug: true,
+                            store: leStore,
+                            debug: true,
+                        });
+                        log(`Added ${domain} to automatic Let's Encrypt certificate management system`.green);
+                        pending--;
+                        finaliseLetsEncrypt(domain);
+                        break;
+                    default:
+                        log(`Warning: cert type not set for ${domain}`.yellow);
+                }
+            }
+
+            !config.certs.default && log('Warning: no default SSL certificate.'.yellow + ' ' + 'SSL ports array will be emptied.'.red);
+            let ports = Object.keys(config.servers);
+            ports.forEach(port => {
+                !config.standard.includes(parseInt(port)) && !config.ssl.includes(parseInt(port)) && log(`Port ${port} is not included in SSL nor standard ports array.`.yellow + ' ' + `Server on port ${port} will not boot.`.red)
+            });
+
+            let interval = setInterval(() => {
+                if (pending === 0) {
+                    _server.close();
+                    clearInterval(interval);
+                    Object.keys(cluster.workers).forEach(index => {
+                        cluster.workers[index].send({config});
+                    })
+                }
+            }, 200);
+        });
+
+        /* END Let's Encrypt generator */
+
+        /* BEGIN Dns Proxy */
+
+        if (config.dns && typeof config.dns === 'object') {
+
+            log('Initializing DNS Proxy...'.cyan);
+
+            const dgram = require('dgram');
+            const packet = require('native-dns-packet');
+            const wildcard = require('wildcard2');
+            const utils = require('./modules/utils.js');
+
+            let dnsConfig;
+
+            let defaults = {
+                port: 53,
+                host: 'localhost',
+                nameservers: [
+                    '8.8.8.8',
+                    '8.8.4.4'
+                ],
+                servers: {},
+                hosts: {},
+                domains: {
+                    'xdev': '127.0.0.1'
+                },
+                fallback_timeout: 350
+            };
+
+            if (utils.isArray(config.dns)) {
+                dnsConfig = {...defaults, nameservers: config.dns};
+            } else {
+                dnsConfig = {...defaults, ...config.dns};
+            }
+
+            const dnsServer = dgram.createSocket('udp4');
+
+            dnsServer.on('listening', () => {
+                log(`DNS Proxy listening at ${dnsConfig.host} port ${dnsConfig.port}`.green);
+            });
+
+            dnsServer.on('error', err => {
+                log(`DNS UDP error`.red);
+                // log(err)
+            });
+
+            dnsServer.on('message', (message, rinfo) => {
+                let returner = false;
+                let nameserver = dnsConfig.nameservers[0];
+
+                const query = packet.parse(message);
+                const domain = query.question[0].name;
+                const type = query.question[0].type;
+
+                log(`DNS Query: ${domain} ${type}`.cyan);
+
+                Object.keys(dnsConfig.hosts).forEach(h => {
+                    if (domain === h) {
+                        let answer = dnsConfig.hosts[h];
+                        if (typeof dnsConfig.hosts[dnsConfig.hosts[h]] !== 'undefined') {
+                            answer = dnsConfig.hosts[dnsConfig.hosts[h]];
+                        }
+
+                        log(`DNS Result - type: host, domain: ${domain}, answer: ${dnsConfig.hosts[h]}, source: ${rinfo.address}:${rinfo.port}, size: ${rinfo.size}`.green);
+
+                        let res = utils.createAnswer(query, answer);
+                        dnsServer.send(res, 0, res.length, rinfo.port, rinfo.address);
+
+                        returner = true;
+                    }
+                });
+
+                if (returner) {
+                    return;
+                }
+
+                Object.keys(dnsConfig.domains).forEach(s => {
+                    let sLen = s.length;
+                    let dLen = domain.length;
+
+                    if ((domain.indexOf(s) >= 0 && domain.indexOf(s) === (dLen - sLen)) || wildcard(domain, s)) {
+                        let answer = dnsConfig.domains[s];
+                        if (typeof dnsConfig.domains[dnsConfig.domains[s]] !== 'undefined') {
+                            answer = dnsConfig.domains[dnsConfig.domains[s]];
+                        }
+
+                        log(`DNS Result - type: server, domain: ${domain}, answer: ${dnsConfig.domains[s]}, source: ${rinfo.address}:${rinfo.port}, size: ${rinfo.size}`.green);
+
+                        let res = utils.createAnswer(query, answer);
+                        dnsServer.send(res, 0, res.length, rinfo.port, rinfo.address);
+
+                        returner = true;
+                    }
+                });
+
+                if (returner) {
+                    return;
+                }
+
+                Object.keys(dnsConfig.servers).forEach(s => {
+                    if (domain.indexOf(s) !== -1) {
+                        nameserver = dnsConfig.servers[s];
+                    }
+                });
+                let nameParts = nameserver.split(':');
+                nameserver = nameParts[0];
+                let port = nameParts[1] || 53;
+                let fallback;
+                (function queryns(message, nameserver) {
+                    const sock = dgram.createSocket('udp4');
+                    sock.send(message, 0, message.length, port, nameserver, () => {
+                        fallback = setTimeout(() => {
+                            queryns(message, dnsConfig.nameservers[0])
+                        }, dnsConfig.fallback_timeout);
                     });
-                    log(`Added ${domain} to automatic Let's Encrypt certificate management system`.green);
-                    pending--;
-                    finaliseLetsEncrypt(domain);
-                    break;
-                default:
-                    log(`Warning: cert type not set for ${domain}`.yellow);
-            }
+                    sock.on('error', err => {
+                        log('Socket Error: %s', err);
+                        process.exit(5);
+                    });
+                    sock.on('message', response => {
+                        clearTimeout(fallback);
+                        log(`DNS Result - type: primary, nameserver: ${nameserver}, query: ${domain}, type: ${utils.records[type] || 'unknown'}, answer: ${utils.listAnswer(response)}, source: ${rinfo.address}:${rinfo.port}, size: ${rinfo.size}`.green);
+                        dnsServer.send(response, 0, response.length, rinfo.port, rinfo.address);
+                        sock.close();
+                    })
+                }(message, nameserver));
+            });
+
+            dnsServer.bind(dnsConfig.port, dnsConfig.host);
+
         }
 
-        !config.certs.default && log('Warning: no default SSL certificate.'.yellow + ' ' + 'SSL ports array will be emptied.'.red);
-        let ports = Object.keys(config.servers);
-        ports.forEach(port => {
-            !config.standard.includes(parseInt(port)) && !config.ssl.includes(parseInt(port)) && log(`Port ${port} is not included in SSL nor standard ports array.`.yellow + ' ' + `Server on port ${port} will not boot.`.red)
-        });
-
-        let interval = setInterval(() => {
-            if (pending === 0) {
-                _server.close();
-                clearInterval(interval);
-                Object.keys(cluster.workers).forEach(index => {
-                    cluster.workers[index].send({config});
-                })
-            }
-        }, 200);
+        /* END Dns Proxy */
     });
-
-    /* END Let's Encrypt generator */
-
-    /* BEGIN Dns Proxy */
-
-    if (config.dns && typeof config.dns === 'object') {
-
-        log('Initializing DNS Proxy...'.cyan);
-
-        const dgram = require('dgram');
-        const packet = require('native-dns-packet');
-        const wildcard = require('wildcard2');
-        const utils = require('./modules/utils.js');
-
-        let dnsConfig;
-
-        let defaults = {
-            port: 53,
-            host: 'localhost',
-            nameservers: [
-                '8.8.8.8',
-                '8.8.4.4'
-            ],
-            servers: {},
-            hosts: {},
-            domains: {
-                'xdev': '127.0.0.1'
-            },
-            fallback_timeout: 350
-        };
-
-        if (utils.isArray(config.dns)) {
-            dnsConfig = {...defaults, nameservers: config.dns};
-        } else {
-            dnsConfig = {...defaults, ...config.dns};
-        }
-
-        const dnsServer = dgram.createSocket('udp4');
-
-        dnsServer.on('listening', () => {
-            log(`DNS Proxy listening at ${dnsConfig.host} port ${dnsConfig.port}`.green);
-        });
-
-        dnsServer.on('error', err => {
-            log(`DNS UDP error`.red);
-            // log(err)
-        });
-
-        dnsServer.on('message', (message, rinfo) => {
-            let returner = false;
-            let nameserver = dnsConfig.nameservers[0];
-
-            const query = packet.parse(message);
-            const domain = query.question[0].name;
-            const type = query.question[0].type;
-
-            log(`DNS Query: ${domain} ${type}`.cyan);
-
-            Object.keys(dnsConfig.hosts).forEach(h => {
-                if (domain === h) {
-                    let answer = dnsConfig.hosts[h];
-                    if (typeof dnsConfig.hosts[dnsConfig.hosts[h]] !== 'undefined') {
-                        answer = dnsConfig.hosts[dnsConfig.hosts[h]];
-                    }
-
-                    log(`DNS Result - type: host, domain: ${domain}, answer: ${dnsConfig.hosts[h]}, source: ${rinfo.address}:${rinfo.port}, size: ${rinfo.size}`.green);
-
-                    let res = utils.createAnswer(query, answer);
-                    dnsServer.send(res, 0, res.length, rinfo.port, rinfo.address);
-
-                    returner = true;
-                }
-            });
-
-            if (returner) {
-                return;
-            }
-
-            Object.keys(dnsConfig.domains).forEach(s => {
-                let sLen = s.length;
-                let dLen = domain.length;
-
-                if ((domain.indexOf(s) >= 0 && domain.indexOf(s) === (dLen - sLen)) || wildcard(domain, s)) {
-                    let answer = dnsConfig.domains[s];
-                    if (typeof dnsConfig.domains[dnsConfig.domains[s]] !== 'undefined') {
-                        answer = dnsConfig.domains[dnsConfig.domains[s]];
-                    }
-
-                    log(`DNS Result - type: server, domain: ${domain}, answer: ${dnsConfig.domains[s]}, source: ${rinfo.address}:${rinfo.port}, size: ${rinfo.size}`.green);
-
-                    let res = utils.createAnswer(query, answer);
-                    dnsServer.send(res, 0, res.length, rinfo.port, rinfo.address);
-
-                    returner = true;
-                }
-            });
-
-            if (returner) {
-                return;
-            }
-
-            Object.keys(dnsConfig.servers).forEach(s => {
-                if (domain.indexOf(s) !== -1) {
-                    nameserver = dnsConfig.servers[s];
-                }
-            });
-            let nameParts = nameserver.split(':');
-            nameserver = nameParts[0];
-            let port = nameParts[1] || 53;
-            let fallback;
-            (function queryns(message, nameserver) {
-                const sock = dgram.createSocket('udp4');
-                sock.send(message, 0, message.length, port, nameserver, () => {
-                    fallback = setTimeout(() => {
-                        queryns(message, dnsConfig.nameservers[0])
-                    }, dnsConfig.fallback_timeout);
-                });
-                sock.on('error', err => {
-                    log('Socket Error: %s', err);
-                    process.exit(5);
-                });
-                sock.on('message', response => {
-                    clearTimeout(fallback);
-                    log(`DNS Result - type: primary, nameserver: ${nameserver}, query: ${domain}, type: ${utils.records[type] || 'unknown'}, answer: ${utils.listAnswer(response)}, source: ${rinfo.address}:${rinfo.port}, size: ${rinfo.size}`.green);
-                    dnsServer.send(response, 0, response.length, rinfo.port, rinfo.address);
-                    sock.close();
-                })
-            }(message, nameserver));
-        });
-
-        dnsServer.bind(dnsConfig.port, dnsConfig.host);
-
-    }
-
-    /* END Dns Proxy */
-
 }
 
 // Path Helper
