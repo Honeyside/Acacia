@@ -42,7 +42,7 @@
   resolved "https://registry.yarnpkg.com/@root/encoding/-/encoding-1.0.1.tgz#60cf3ccb9e2239226b30e8394c7a4a258a161c3e"
   integrity sha512-OaEub02ufoU038gy6bsNHQOjIn8nUjGiLcaRmJ40IUykneJkIW5fxDqKxQx48cszuNflYldsJLPPXCrGfHs8yQ==
 
-"@root/greenlock@^4.0.4":
+"@root/greenlock@^4.0.4", "@root/greenlock@v4":
   version "4.0.5"
   resolved "https://registry.yarnpkg.com/@root/greenlock/-/greenlock-4.0.5.tgz#b960a143b9595d2086be886a01914c9e2b68e0c4"
   integrity sha512-KR9w3mYE9aH33FCibI8oSYBQV+f7lc3MVPdZ9nxY2tqRLmJp05cMOMz340mtG14VnWDuznLj4TbBj3sHIuoQPQ==

@@ -87,9 +87,6 @@ if (cluster.isMaster) {
         },
         packageRoot: `${__dirname}`,
         configDir: `${__dirname}/greenlock.d`,
-        manager: {
-            module: '@greenlock/manager'
-        },
     });
 
     log('Greenlock create ok'.green);
@@ -97,16 +94,6 @@ if (cluster.isMaster) {
     greenlock.manager.defaults({
         agreeToTerms: true,
         subscriberEmail: 'subscriber@example.com',
-        store: {
-            module: 'greenlock-store-fs',
-            configDir: `${__dirname}/acme/certs`,
-        },
-        challenges: {
-            "http-01": {
-                module: "acme-http-01-webroot",
-                webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
-            },
-        },
     }).then(() => {
         log('Greenlock manager ok'.green);
 
