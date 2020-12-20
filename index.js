@@ -98,6 +98,12 @@ if (cluster.isMaster) {
             module: 'greenlock-store-fs',
             configDir: `${__dirname}/acme/certs`,
         },
+        challenges: {
+            "http-01": {
+                module: "le-challenge-fs",
+                webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
+            },
+        },
     }).then(() => {
         let keys = Object.keys(config.certs);
 
@@ -154,12 +160,6 @@ if (cluster.isMaster) {
                             altnames: [domain],
                             subscriberEmail: config.certs[domain].email,
                             agreeToTerms: true,
-                            challenges: {
-                                "http-01": {
-                                    module: "le-challenge-fs",
-                                    webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
-                                },
-                            },
                             debug: true,
                         });
                         log(`Added ${domain} to automatic Let's Encrypt certificate management system`.green);
