@@ -103,7 +103,7 @@ if (cluster.isMaster) {
         },
         challenges: {
             "http-01": {
-                module: "le-challenge-fs",
+                module: "acme-http-01-webroot",
                 webroot: `${__dirname}/acme/webroot/.well-known/acme-challenge`,
             },
         },
