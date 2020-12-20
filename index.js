@@ -306,11 +306,18 @@ const main = app => {
         // Worker config
         let config;
         let secureContext = {};
-        if (msg.config) {
-            config = msg.config;
+
+        if (fs.existsSync(`${__dirname}/config.js`)) {
+            log('Using JS config file.'.green);
+            config = require(`${__dirname}/config.js`);
+        }
+        else if (fs.existsSync(`${__dirname}/config.json`)) {
+            log('Using JSON config file.'.green);
+            config = JSON.parse(fs.readFileSync(`${__dirname}/config.json`, 'utf8'));
         }
         else {
-            return;
+            log('No config file found!'.red);
+            process.exit(0);
         }
 
         Object.keys(config.certs).forEach(domain => {
