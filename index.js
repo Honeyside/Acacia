@@ -93,7 +93,6 @@ if (cluster.isMaster) {
         },
         debug: true,
         configDir: `${__dirname}/acme/certs`,
-        store: leStore,
     });
 
     greenlock.manager.defaults({
