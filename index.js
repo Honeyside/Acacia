@@ -152,6 +152,7 @@ if (cluster.isMaster) {
                         pending++;
                         await greenlock.add({
                             subject: domain,
+                            altnames: [domain],
                             subscriberEmail: config.certs[domain].email,
                             agreeToTerms: true,
                             challenges: {
