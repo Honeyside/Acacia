@@ -99,17 +99,6 @@ if (cluster.isMaster) {
 
         let keys = Object.keys(config.certs);
 
-        let pending = 0;
-
-        const finaliseLetsEncrypt = domain => {
-            config.certs[domain] = {
-                ...config.certs[domain],
-                key: `acme/certs/live/${domain}/privkey.pem`,
-                cert: `acme/certs/live/${domain}/cert.pem`,
-                ca: `acme/certs/live/${domain}/chain.pem`
-            };
-        };
-
         const app = new Koa();
 
         // or use absolute paths
@@ -146,7 +135,6 @@ if (cluster.isMaster) {
 
                         log(`Generating Let's Encrypt certificate for ${domain}...`.yellow);
 
-                        pending++;
                         await greenlock.add({
                             subject: domain,
                             altnames: [domain],
@@ -154,8 +142,6 @@ if (cluster.isMaster) {
                             agreeToTerms: true,
                         });
                         log(`Added ${domain} to automatic Let's Encrypt certificate management system`.green);
-                        pending--;
-                        finaliseLetsEncrypt(domain);
                         break;
                     default:
                         log(`Warning: cert type not set for ${domain}`.yellow);
@@ -167,16 +153,6 @@ if (cluster.isMaster) {
             ports.forEach(port => {
                 !config.standard.includes(parseInt(port)) && !config.ssl.includes(parseInt(port)) && log(`Port ${port} is not included in SSL nor standard ports array.`.yellow + ' ' + `Server on port ${port} will not boot.`.red)
             });
-
-            let interval = setInterval(() => {
-                if (pending === 0) {
-                    _server.close();
-                    clearInterval(interval);
-                    Object.keys(cluster.workers).forEach(index => {
-                        cluster.workers[index].send({config});
-                    })
-                }
-            }, 200);
         });
 
         /* END Let's Encrypt generator */
@@ -338,11 +314,19 @@ const main = app => {
         }
 
         Object.keys(config.certs).forEach(domain => {
-            secureContext[domain] = tls.createSecureContext({
-                key: config.certs[domain].key && fs.existsSync(getPath(config.certs[domain].key)) ? fs.readFileSync(getPath(config.certs[domain].key), 'utf8') : undefined,
-                cert: config.certs[domain].cert && fs.existsSync(getPath(config.certs[domain].cert)) ? fs.readFileSync(config.certs[domain].cert, 'utf8') : undefined,
-                ca: config.certs[domain].ca && fs.existsSync(getPath(config.certs[domain].ca)) ? fs.readFileSync(config.certs[domain].ca, 'utf8') : undefined
-            });
+            const go = (domain) => {
+                secureContext[domain] = tls.createSecureContext({
+                    key: config.certs[domain].key && fs.existsSync(getPath(`greenlock.d/live/${domain}/privkey.pem`)) ? fs.readFileSync(getPath(config.certs[domain].key), 'utf8') : undefined,
+                    cert: config.certs[domain].cert && fs.existsSync(getPath(`greenlock.d/live/${domain}/cert.pem`)) ? fs.readFileSync(config.certs[domain].cert, 'utf8') : undefined,
+                    ca: config.certs[domain].ca && fs.existsSync(getPath(`greenlock.d/live/${domain}/chain.pem`)) ? fs.readFileSync(config.certs[domain].ca, 'utf8') : undefined
+                });
+            };
+            if (!fs.existsSync(getPath(`greenlock.d/live/${domain}/privkey.pem`))) {
+                setTimeout(() => go(domain), 5000);
+            }
+            else {
+                go(domain);
+            }
         });
 
         // Worker dependencies
