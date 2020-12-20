@@ -94,6 +94,10 @@ if (cluster.isMaster) {
     greenlock.manager.defaults({
         agreeToTerms: true,
         subscriberEmail: 'subscriber@example.com',
+        store: {
+            module: 'greenlock-store-fs',
+            configDir: `${__dirname}/acme/certs`,
+        },
     }).then(() => {
         let keys = Object.keys(config.certs);
 
