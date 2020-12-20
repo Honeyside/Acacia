@@ -352,9 +352,9 @@ const main = app => {
 
         Object.keys(config.certs).forEach(domain => {
             secureContext[domain] = tls.createSecureContext({
-                key: config.certs[domain].key ? fs.readFileSync(getPath(config.certs[domain].key), 'utf8') : undefined,
-                cert: config.certs[domain].cert ? fs.readFileSync(config.certs[domain].cert, 'utf8') : undefined,
-                ca: config.certs[domain].ca ? fs.readFileSync(config.certs[domain].ca, 'utf8') : undefined
+                key: config.certs[domain].key && fs.existsSync(getPath(config.certs[domain].key)) ? fs.readFileSync(getPath(config.certs[domain].key), 'utf8') : undefined,
+                cert: config.certs[domain].cert && fs.existsSync(getPath(config.certs[domain].cert)) ? fs.readFileSync(config.certs[domain].cert, 'utf8') : undefined,
+                ca: config.certs[domain].ca && fs.existsSync(getPath(config.certs[domain].ca)) ? fs.readFileSync(config.certs[domain].ca, 'utf8') : undefined
             });
         });
 
