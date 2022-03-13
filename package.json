@@ -24,7 +24,7 @@
     "parseurl": "^1.3.3",
     "react-icons": "^3.7.0",
     "react-router-dom": "^5.0.1",
-    "validator": "^11.1.0",
+    "validator": "^13.7.0",
     "wildcard2": "0.0.2"
   }
 }
